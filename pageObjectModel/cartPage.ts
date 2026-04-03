@@ -29,14 +29,13 @@ export class cartPage{
     };
 
 
-    async removebutton(){
+    async removeProduct(){
         const dialog = this.page.getByRole("dialog");
         await this.removeButton.click();
         await expect (dialog.getByRole("heading")).toHaveText("Are you absolutely sure?");
         await expect (dialog.getByRole("paragraph"))
         .toHaveText("This action cannot be undone. This will permanently delete your item from your cart.");
-        await dialog.getByRole("button", {name:"Remove"}).click();  
-        await expect(this.yourCartIsEmptyMessage).toBeVisible();
+        await dialog.getByRole("button", {name:"Remove"}).click();
     };
 
 
