@@ -1,17 +1,18 @@
 import { test, expect, request } from "@playwright/test";
 import { POManager} from "../pageObjectModel/POManager";
-import TestData from "../utils/QABrainsData.json";
-const data = TestData 
+import data from "../utils/QABrainsData.json";
+import { shopPage } from "../pageObjectModel/shopPage";
+import { env } from "node:process";
 
 test("first user E2E test", async ({ page }) => {
-    const productName: string = data[1].productName;
+    const productName: string | string[] = data[1].productName;
     const poManager = new POManager(page);
     const LoginPage = poManager.getLoginPage();
     const ShopPage = poManager.getShopPage();
     const CartPage = poManager.getCartPage();
     const CheckoutPage = poManager.getCheckoutPage();
-    await LoginPage.goToShop();
-    await LoginPage.firstUserLogin();
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
     await ShopPage.getProductInCart(productName);
     await expect(ShopPage.toastStatus).toBeVisible();
     await expect(ShopPage.toastStatus).toContainText("Added to cart");
@@ -27,7 +28,7 @@ test("first user E2E test", async ({ page }) => {
     let { QuantityProductNumber, PricePerProduct, totalPerProduct } = await CheckoutPage.validatePriceOneProduct(productName);
     expect(totalPerProduct).toBe(PricePerProduct * QuantityProductNumber);
     await CheckoutPage.completeCheckout();
-    await expect(CheckoutPage.CompleteHeading).toBeVisible();
+    await expect(CheckoutPage.completeHeading).toBeVisible();
     await expect(CheckoutPage.thanksHeading).toBeVisible();
     await expect(CheckoutPage.thanksMessage).toBeVisible();
     await ShopPage.disconnectUser();
@@ -40,8 +41,8 @@ test("Remove the only product from the cart show empty message", async ({page}) 
     const LoginPage = poManager.getLoginPage();
     const ShopPage = poManager.getShopPage();
     const CartPage = poManager.getCartPage();
-    await LoginPage.goToShop();
-    await LoginPage.firstUserLogin();
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
     await ShopPage.setProductName(productName);
     await ShopPage.getProductInCart(productName);
     await expect(ShopPage.toastStatus).toBeVisible();
@@ -55,7 +56,7 @@ test("Remove the only product from the cart show empty message", async ({page}) 
     await expect(CartPage.continueShoppingButton).toBeInViewport();
     expect(await CartPage.continueShoppingButton.locator("../..").screenshot())
     .toMatchSnapshot("CenteredContinueButton.png");
-    //await page.close()
+    await page.close();
 });
 
 test("Favorite page functions", async ({page}) =>{
@@ -63,10 +64,17 @@ test("Favorite page functions", async ({page}) =>{
     const poManager = new POManager(page);
     const LoginPage = poManager.getLoginPage();
     const ShopPage = poManager.getShopPage();
-    await LoginPage.goToShop();
-    await LoginPage.firstUserLogin();
-    await ShopPage.setProductName(productName);
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
     await ShopPage.setProductAsFavorites(productName);
+    await ShopPage.goToFavoritesPage();
+    await expect(ShopPage.productCard).toBeVisible();
+    await page.reload({waitUntil : "networkidle"});
+    await expect(ShopPage.productCard).toBeVisible();
+    await page.goto(`${process.env.QABrains_BASEURL}`);
+    await ShopPage.goToFavoritesPage();
+    await ShopPage.disconnectUser();
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
     await ShopPage.goToFavoritesPage();
     await expect(ShopPage.productCard).toBeVisible();
     await ShopPage.removeFromFavorites(productName);
@@ -86,8 +94,8 @@ test("Add multiple products in the cart", async ({page})=>{
     const ShopPage = poManager.getShopPage();
     const CartPage = poManager.getCartPage();
     const CheckoutPage = poManager.getCheckoutPage();
-    await LoginPage.goToShop();
-    await LoginPage.firstUserLogin();
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
     await ShopPage.getProductInCart(productName1);
     await ShopPage.getProductInCart(productName2);
     await ShopPage.getProductInCart(productName3);
@@ -104,4 +112,70 @@ test("Add multiple products in the cart", async ({page})=>{
     expect(totalPerProduct).toBe(PricePerProduct * QuantityProductNumber);
     await CheckoutPage.completeCheckout();
     await CheckoutPage.continueButton.click();
+});
+
+test("One product Multiple times in cart", async({page})=>{
+    const poManager = new POManager(page);
+    const LoginPage = poManager.getLoginPage();
+    const ShopPage = poManager.getShopPage();
+    const CartPage = poManager.getCartPage();
+    const CheckoutPage = poManager.getCheckoutPage();
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
+    await ShopPage.getProductInCart(data[0].productName);
+    await ShopPage.goToCart();
+    await CartPage.addProductMultiple(data[0].productName, data[0].numberOfProdcucts);
+    expect(Number(await CartPage.quantityProductLocator.allTextContents()))
+    .toBe(data[0].numberOfProdcucts);
+    await CartPage.goToCheckout();
+    await CheckoutPage.validateInformations();
+    await CheckoutPage.validatePriceOneProduct(data[0].productName);
+    let {itemTotal, taxTotal, priceTotal} = await CheckoutPage.validateTaxTotal();
+    expect(taxTotal).toBe(itemTotal * 0.05);
+    expect(priceTotal).toBe(itemTotal + taxTotal);
+    await CheckoutPage.completeCheckout();
+    await expect(CheckoutPage.thanksMessage).toBeVisible();
+    await ShopPage.disconnectUser();
+});
+
+test("Delete product Multiple times in cart", async({page})=>{
+    const poManager = new POManager(page);
+    const LoginPage = poManager.getLoginPage();
+    const ShopPage = poManager.getShopPage();
+    const CartPage = poManager.getCartPage();
+    const CheckoutPage = poManager.getCheckoutPage();
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
+    await ShopPage.getProductInCart(data[0].productName);
+    await ShopPage.goToCart();
+    await CartPage.addProductMultiple(data[0].productName, data[0].numberOfProdcucts);
+    await CartPage.deleteProductMultipleUntillOne(data[0].productName, data[0].numberOfProdcucts);
+    await CartPage.goToCheckout();
+    await CheckoutPage.validateInformations();
+    await CheckoutPage.validatePriceOneProduct(data[0].productName);
+    let {itemTotal, taxTotal, priceTotal} = await CheckoutPage.validateTaxTotal();
+    expect(taxTotal).toBe(itemTotal * 0.05);
+    expect(priceTotal).toBe(itemTotal + taxTotal);
+    await CheckoutPage.completeCheckout();
+    await expect(CheckoutPage.thanksMessage).toBeVisible();
+    await ShopPage.disconnectUser();
+});
+
+test("Verify order in product page", async({page})=>{
+    let listprices : number[] = [];
+    const poManager = new POManager(page);
+    const LoginPage = poManager.getLoginPage();
+    const ShopPage = poManager.getShopPage();
+    await LoginPage.goToShop(process.env.QABrains_BASEURL);
+    await LoginPage.firstUserLogin(process.env.QABrains_email, process.env.QABrains_password);
+    await ShopPage.setOrderLowToHigh();
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/^\$\d+(\.\d{2})?$/).first()).toHaveText("$45.00");
+    const numberofdollarsigns = await page.getByText(/^\$\d+(\.\d{2})?$/).count();
+    for(let i = 0 ; i < numberofdollarsigns ; i++){
+        listprices.push(Number((await page.getByText(/^\$\d+(\.\d{2})?$/).nth(i).textContent()).replace("$", "").trim()));
+    };
+    for(let i = 0 ; i < listprices.length - 1 ; i++){
+        expect(listprices[i]).toBeLessThanOrEqual(listprices[i+1]);
+    };
 });

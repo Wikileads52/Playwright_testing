@@ -17,7 +17,11 @@ export class checkoutPage{
     productQuantityLocator : Locator
     thanksHeading : Locator;
     thanksMessage : Locator;
-    CompleteHeading : Locator;
+    completeHeading : Locator;
+    priceSection : Locator;
+    itemTotalLocator : Locator;
+    taxLocator : Locator;
+    priceTotalLocator : Locator;
 
     constructor(page){
         this.page = page
@@ -31,7 +35,12 @@ export class checkoutPage{
         this.finishButton = this.page.getByRole("button", {name : "Finish"});
         this.thanksHeading = this.page.getByRole("heading", {name : "Thank you for your order!"});
         this.thanksMessage = this.page.getByRole("paragraph").filter({hasText : "Your order has been dispatched, and will arrive just as fast as the pony can get there!"});
-        this.CompleteHeading = this.page.getByRole("heading", {name : "Checkout: Complete!"});
+        this.completeHeading = this.page.getByRole("heading", {name : "Checkout: Complete!"});
+        this.priceSection = this.page.getByRole("heading", {name : "Price Total:"}).locator("..");
+        this.itemTotalLocator = this.priceSection.getByText("Item Total : $");
+        this.taxLocator = this.priceSection.getByText("Tax : $");
+        this.priceTotalLocator = this.priceSection.getByRole("paragraph").filter({hasText: /^Total : \$/});
+
     };
 
     setProductName(productName : string){
@@ -56,12 +65,18 @@ export class checkoutPage{
 
     async validatePriceOneProduct(productName){
         this.setProductName(productName)
-        let QuantityProductString = await this.productQuantityLocator.textContent();
-        const dollarPricePerProduct = (await this.productPriceLocator.textContent()).replace("$", "").trim();
-        let dollarTotalOneProduct = (await this.productTotalLocator.textContent()).replace('$', "").trim();
-        let QuantityProductNumber = Number(QuantityProductString);
-        const PricePerProduct = Number(dollarPricePerProduct);
-        let totalPerProduct = Number(dollarTotalOneProduct)
-        return {QuantityProductNumber, PricePerProduct, totalPerProduct}
+        let QuantityProductNumber : number = Number (await this.productQuantityLocator.textContent()!);
+        const PricePerProduct : number = Number((await this.productPriceLocator.textContent()!).replace("$", "").trim());
+        let totalPerProduct : number = Number ((await this.productTotalLocator.textContent()!).replace('$', "").trim());
+        return {QuantityProductNumber, PricePerProduct, totalPerProduct};
     };
+
+    async validateTaxTotal(){
+        let  itemTotal : number = Number((await this.itemTotalLocator.textContent()!).replace("Item Total : $", "").trim());
+        let taxTotal : number = Number((await this.taxLocator.textContent()!).replace("Tax : $", "").trim());
+        let priceTotal : number = Number ((await this.priceTotalLocator.textContent()!).replace("Total : $", "").trim());
+        return {itemTotal, taxTotal, priceTotal};
+    };
+
+
 };

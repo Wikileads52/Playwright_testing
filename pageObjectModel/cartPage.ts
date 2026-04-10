@@ -9,9 +9,9 @@ export class cartPage{
     continueShoppingButton : Locator;
     checkoutButton : Locator;
     checkoutInformationBoard : Locator;
+    quantityProductLocator : Locator
     plusOneButton : Locator;
     minusOneButton : Locator;
-
 
     constructor(page: Page){
         this.page = page;
@@ -25,16 +25,15 @@ export class cartPage{
         this.cartProductName = this.page.getByRole("heading", {name: `${productName}`});
         this.cartProductLine = this.page.locator(".cart-list").locator(".flex").filter({hasText:`${productName}`}).first()
         this.removeButton = this.cartProductLine.getByRole("button", {name: "Remove"});
+        this.quantityProductLocator = this.cartProductLine.getByText(/^\d+$/);
         this.plusOneButton = this.cartProductLine.getByRole("button", {name : "+", exact : true});
         this.minusOneButton = this.cartProductLine.getByRole("button", {name : "-", exact: true});
     }
-
 
     async goToCheckout(){
         await this.checkoutButton.click();
         await expect(this.checkoutInformationBoard).toBeVisible()
     };
-
 
     async removeProduct(productName){
         this.setProductName(productName)
@@ -46,8 +45,19 @@ export class cartPage{
         await dialog.getByRole("button", {name:"Remove"}).click();
     };
 
+    async addProductMultiple(productName, numberOfProdcucts){
+        this.setProductName(productName);
+        const numberOfProdcuct = numberOfProdcucts - 1;
+        for(let i = 0 ; i< numberOfProdcuct; i++){
+            await this.plusOneButton.click();
+        };
+    };
 
-
-
-
+    async deleteProductMultipleUntillOne(productName, numberOfProdcucts){
+        this.setProductName(productName);
+        const numberOfProdcuct = numberOfProdcucts - 1;
+        for(let i = 0 ; i< numberOfProdcuct ; i++){
+            await this.minusOneButton.click();
+        }
+    }
 };

@@ -11,6 +11,10 @@ export class shopPage{
     cartButton : Locator;
     cartButtonNumber : Locator;
     searchComboBox : Locator;
+    orderByAToZ : Locator;
+    orderByZToA : Locator;
+    orderByLowToHigh : Locator;
+    orderByHighToLow : Locator;
     productFavoriteButton : Locator;
     profileButton : Locator;
     cartProductName : Locator;
@@ -28,6 +32,10 @@ export class shopPage{
         this.cartButtonNumber = this.page.locator('#ecommerce-header')
         .locator(".bg-qa-clr");
         this.searchComboBox = this.page.getByRole("combobox");
+        this.orderByAToZ = this.page.getByRole("option", {name : "A to Z (Ascending)"});
+        this.orderByZToA = this.page.getByRole("option", {name : "Z to A (Descending)"});
+        this.orderByLowToHigh = this.page.getByRole("option", {name : "Low to High (Price)"});
+        this.orderByHighToLow = this.page.getByRole("option", {name : "High to Low (Price)"});
         this.profileButton = this.page.getByRole('button', { name: 'test@qabrains.com' });
         this.favoritesPageAccess = this.page.getByRole("menuitem", {name : "Favorites"});
         this.logoutMenuItem = this.page.getByRole("menuitem", {name : "Log out"});
@@ -70,7 +78,7 @@ export class shopPage{
         await expect(dialog.getByRole("paragraph")).toHaveText("You're about to log out. Continue?");
         await dialog.getByRole("button", {name : "Logout"}).click();
         await expect(this.page).toHaveURL("https://practice.qabrains.com/ecommerce/login");
-    }
+    };
 
     async goToFavoritesPage(){
         await this.profileButton.click();
@@ -84,4 +92,9 @@ export class shopPage{
         await this.productAddButton.click();
         await expect.soft(this.toastStatus.first()).toContainText("Added to cart")
     };
+
+    async setOrderLowToHigh(){
+        await this.searchComboBox.click();
+        await this.orderByLowToHigh.click();
+    }
 };
