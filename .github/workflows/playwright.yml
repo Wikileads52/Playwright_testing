@@ -1,13 +1,17 @@
 name: Playwright CI
+
 on:
   push:
     branches: [main]
   pull_request:
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
     env:
       DEBUG: pw:api
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,9 +27,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Load .env file
-        run: export $(grep -v '^#' .env | xargs)
-        shell: bash
+      - name: Load environment variables
+        run: cat .env >> $GITHUB_ENV
 
       - name: Run tests
         run: npx playwright test --reporter=html,line
